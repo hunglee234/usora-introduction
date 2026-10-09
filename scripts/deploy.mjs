@@ -1,0 +1,11 @@
+import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+const config=JSON.parse(await readFile('content/site.json','utf8'));
+const firebase=JSON.parse(await readFile('firebase.json','utf8'));
+const draft = !config.operator || !config.email || !config.policyVerified;
+if (draft && !process.argv.includes('--allow-draft')) throw new Error('Complete policy details, or use --allow-draft to publish the clearly labeled draft at the permanent URL.');
+if (draft) console.warn('Publishing the existing draft to the permanent URL. Draft notice and noindex remain enabled.');
+if (firebase.hosting.site !== 'usora') throw new Error('Deploy only to the dedicated Usora site; preserve OpenCono.');
+if(config.origin!==`https://${firebase.hosting.site}.web.app`) throw new Error('Canonical origin does not match Firebase site.');
+const result=spawnSync('firebase',['deploy','--only','hosting','--project','fe-social-story','--non-interactive'],{stdio:'inherit'});
+process.exit(result.status ?? 1);
